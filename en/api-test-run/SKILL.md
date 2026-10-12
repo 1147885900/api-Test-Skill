@@ -1,6 +1,6 @@
 ---
 name: api-test-run
-description: Run Java/Spring Boot Maven API tests and classify failures. Mock mode runs ApiTest and FlowTest. Daily mode runs IT with -Denv=daily and collects raw recordings. Switches JDK per module. Report only; does not edit code. Use when the user asks to run API tests, run IT, or verify a change.
+description: Run Java/Spring Boot Maven API tests and classify failures. Mock mode runs ApiTest and FlowTest. Real mode runs IT with the local arguments from the profile. The user configures those arguments, and the list may be empty. Switches JDK per module. Report only; does not edit code. Use when the user asks to run API tests, run IT, or verify a change.
 disable-model-invocation: true
 ---
 
@@ -11,9 +11,9 @@ Build the Maven command from the profile, run the tests, and classify failures. 
 ## Hard rules
 
 1. Report only. Do not edit test code, business code, or `pom.xml`. Write a profile change only after the user confirms the suggestion.
-2. On Windows PowerShell, every `-D` argument must be wrapped in double quotes, for example `"-Dspring.profiles.active=local"`. Without quotes PowerShell splits on `.` and Maven reports `Unknown lifecycle phase`. The comma in `-Dtest=A,B` needs quotes too.
-3. Mock mode does not pass daily args unless that layer's `boot` value is `daily`. Real tests (`*IT`) run only in daily mode.
-4. Daily or test environments only. If a startup arg is `-Denv=prod`, `-Denv=pro`, or another production marker, stop and tell the user.
+2. On Windows PowerShell, every `-D` argument must be wrapped in double quotes, for example `"-Dsome.flag=value"`. Without quotes PowerShell splits on `.` and Maven reports `Unknown lifecycle phase`. The comma in `-Dtest=A,B` needs quotes too.
+3. Mock mode does not pass real-environment args unless that layer's `boot` value is `daily`. Real tests (`*IT`) use only `commands.dailyArgs` and `dailyRun.extraArgs`. When both are empty, add no `-D` arguments. Do not invent `-Denv=daily` or any argument that is not in the profile. The profile name daily means "run against the real environment". It does not mean the environment is named daily.
+4. Use only the test environment the user named. If a startup arg is `-Denv=prod`, `-Denv=pro`, or another production marker, stop and tell the user.
 5. Recordings are not redacted. Do not paste their contents into the chat, and do not copy them elsewhere.
 
 ## Mode and scope
@@ -48,7 +48,9 @@ Build the Maven command from the profile, run the tests, and classify failures. 
 
 Read `<project root>/.api-test/profile.yaml`. If it is missing, tell the user to run `/api-test-gen` first. If they only want existing tests, run `mvn -pl <module> test` and skip step 3.
 
-Before daily mode, list the real tests that will run. Cases marked as a write or a billed call in `.api-test/behaviors/` need a reminder and a confirmation before they run.
+Before real mode, list the real tests that will run. Cases marked as a write or a billed call in `.api-test/behaviors/` need a reminder and a confirmation before they run.
+
+When `commands.dailyArgs` and `dailyRun.extraArgs` are both empty, and the user has not already said that no extra arguments are needed, ask which `-D` arguments the local real run should add. If they need none, leave both lists empty and remember that. Do not ask again, and do not fill in example arguments.
 
 ### 2. Choose the JDK
 
@@ -102,11 +104,13 @@ Start from `commands.testClasses` and append startup args. Quote each `-D` argum
 mvn -pl {{module}} "-Dtest={{class1}},{{class2}}" "-Dsurefire.failIfNoSpecifiedTests=false" {{startup args}} test
 ```
 
-Example (daily mode, one real test; the last arg comes from `dailyRun.extraArgs`):
+Example (real mode, no extra arguments in the profile):
 
 ```powershell
-mvn -pl platform-ai-service -am "-Dtest=AddressControllerIT" "-Dsurefire.failIfNoSpecifiedTests=false" "-Denv=daily" "-Dspring.profiles.active=local" "-Dxxl.job.executor.appname=false" test
+mvn -pl <module> -am "-Dtest=<Controller>IT" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
+
+When `commands.dailyArgs` or `dailyRun.extraArgs` has entries, insert each one as its own quoted argument before `test`. When both are empty, the command ends at `test`.
 
 - When the contract layer and the boundary layer use different startup modes, run them in separate groups. Put `FlowTest` classes of one group in the same `mvn` so the Spring context is reused in that process. A separate `mvn` per class is a new process and pays startup again.
 - `-Dtest` overrides Surefire's default includes, so an `*IT` named there will run. Mock mode must not put `*IT` in `-Dtest`.

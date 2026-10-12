@@ -155,7 +155,7 @@ en/api-test-shared
 
 `.api-test/` 和服务里已有的 `AGENTS.md`、`harness/`、规则目录互不干扰。技能只把那些文件当参考读，不往里面写。`.api-test/` 交不提交，由项目自己决定。正常的 Java `.gitignore` 已经忽略 `target/`。如果没有忽略，生成指令会先问你，再改 `.gitignore`。
 
-第一次运行还会确认契约层怎么启动。有的服务在 Apollo 和注册中心开着时起不来 `@WebMvcTest`，因为启动类会扫描全部 Feign 客户端。画像会为契约层记下离线参数（`apollo.bootstrap.enabled=false`、关闭 eager load、关闭 Eureka 和 discovery），为边界层记下 daily 参数。这些参数加在 Maven 命令行上，不写进测试类。
+第一次运行还会确认契约层怎么启动。有的服务在配置中心和注册中心开着时起不来 `@WebMvcTest`。画像可以把契约层需要的离线参数记下来。真实用例要不要额外 `-D`，由你自己定，写进画像；不需要就留空。这些参数加在 Maven 命令行上，不写进测试类。技能不会默认加上 `-Denv=daily`。
 
 在 Windows PowerShell 里，执行指令会给每个 `-D` 参数加引号。不加引号时，PowerShell 会在 `.` 处把参数拆开，Maven 报未知的 lifecycle phase。
 

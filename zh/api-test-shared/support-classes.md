@@ -69,6 +69,8 @@ List<XxxDTO> items = TestFixtures.readJson("xxx/list-ok.json", new TypeReference
 
 ## FixtureRecorder（fastjson2）
 
+`{{envName}}` 用画像里用户配置的环境名。没有额外启动参数时写 `local`，不要写 `daily`。
+
 ```java
 package {{basePackage}}.apitest;
 
@@ -103,7 +105,7 @@ public final class FixtureRecorder {
         String json = JSON.toJSONString(value, JSONWriter.Feature.PrettyFormat, JSONWriter.Feature.WriteNulls);
         String meta = "source: recorded\n"
                 + "type: " + type + "\n"
-                + "env: daily\n"
+                + "env: {{envName}}\n"
                 + "capturedAt: " + LocalDate.now() + "\n";
         try {
             Files.createDirectories(dir);

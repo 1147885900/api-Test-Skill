@@ -95,7 +95,7 @@ disable-model-invocation: true
 | `sliceConfig` | 启动类（`@SpringBootApplication` 所在类）上另有 `@ComponentScan`、`@MapperScan`、带 `basePackages` 的 `@EnableFeignClients` 时为 `explicit`，否则为 `auto` |
 | `boundaries` | Feign 包装类（如 `*Proxy`）和业务代码直接注入的 `@FeignClient` 接口（含依赖 jar 中的，如 `DictClient`）、`*Mapper`、Redis 工具类、HTTP 客户端、MQ 模板的实际类名 |
 | `sampling`、`dailyRun` | 询问用户：是否从日志采样、用哪个日志插件（默认腾讯云 CLS，可改成其他日志插件）、测试环境的主题或查询方式、请求记录表、哪些方法禁止在真实用例中调用。插件不是 CLS 时，把用法写入 `sampling.cls.notes`，`provider` 填插件名 |
-| `dailyRun.extraArgs` | 依赖中有 xxl-job 等定时任务执行器、MQ 消费者时，找出关闭它们的配置项写成 `-D` 参数；试跑后日志中不再出现执行器启动即为生效 |
+| `commands.dailyArgs`、`dailyRun.extraArgs` | 询问用户：本地跑真实用例要追加哪些 `-D`。用户说不需要就留空数组。不要写入 `-Denv=daily`，也不要把模板里的例子直接抄进去。只有用户确认需要的参数才写入 |
 
 取不到证据的值写 `unknown`，不猜。项目有测试规范文档时可参考，但版本类字段以依赖和现有测试为准。生成后整份给用户确认，再写入 `.api-test/profile.yaml`。
 

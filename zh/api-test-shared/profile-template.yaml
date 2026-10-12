@@ -33,9 +33,8 @@ commands:
   testClasses: 'mvn -pl {{module}} "-Dtest={{tests}}" "-Dsurefire.failIfNoSpecifiedTests=false" test'
   testModule: "mvn -pl {{module}} test"
   testCompile: "mvn -pl {{module}} test-compile"
-  dailyArgs:
-    - "-Denv=daily"
-    - "-Dspring.profiles.active=local"
+  dailyArgs: []                       # 真实用例、以及 boot 为 daily 的层要追加的 -D。问用户自己的环境要加什么；不需要就留空
+                                      # 字段名 daily 只表示「连真实环境」，不是要求环境名叫 daily。不要默认写入 -Denv=daily
 
 boot:
   # 替身用例启动 Spring 的方式：offline（带 offlineArgs）| daily（带 dailyArgs 和 dailyRun.extraArgs）| unknown（由 api-test-run 首次运行时探测）
@@ -58,8 +57,8 @@ boundaries:
   time: []                            # 读取当前时间的方法，例："ApiKeyRateLimiter#currentWindow"
 
 dailyRun:
-  extraArgs: []                       # daily 启动时的额外参数（真实用例和 daily 启动的替身用例都带）：关闭定时任务执行器、MQ 消费等
-                                      # 例："-Dxxl.job.executor.appname=false"；不关闭时会注册到 daily 调度中心，或与本机已运行的服务抢端口
+  extraArgs: []                       # 同上，用户还要追加的参数。用户说不需要就留空，不要把下面的例子写进文件
+                                      # 例："-Dxxl.job.executor.appname=false"。只有用户确认本机需要时才写入
   forbiddenCalls: []                  # 真实用例禁止触发的写操作 / 计费调用，例："ShanshanClueProxy#createClue"
 
 sampling:

@@ -67,7 +67,9 @@ A generic return value (for example `List<XxxDTO>`) uses `TypeReference`:
 List<XxxDTO> items = TestFixtures.readJson("xxx/list-ok.json", new TypeReference<List<XxxDTO>>() {});
 ```
 
-## FixtureRecorder（fastjson2）
+## FixtureRecorder (fastjson2)
+
+`{{envName}}` is the environment name from the profile. When the user added no extra startup arguments, write `local`, not `daily`.
 
 ```java
 package {{basePackage}}.apitest;
@@ -103,7 +105,7 @@ public final class FixtureRecorder {
         String json = JSON.toJSONString(value, JSONWriter.Feature.PrettyFormat, JSONWriter.Feature.WriteNulls);
         String meta = "source: recorded\n"
                 + "type: " + type + "\n"
-                + "env: daily\n"
+                + "env: {{envName}}\n"
                 + "capturedAt: " + LocalDate.now() + "\n";
         try {
             Files.createDirectories(dir);

@@ -36,9 +36,8 @@ commands:
   testClasses: 'mvn -pl {{module}} "-Dtest={{tests}}" "-Dsurefire.failIfNoSpecifiedTests=false" test'
   testModule: "mvn -pl {{module}} test"
   testCompile: "mvn -pl {{module}} test-compile"
-  dailyArgs:
-    - "-Denv=daily"
-    - "-Dspring.profiles.active=local"
+  dailyArgs: []                       # -D args for real tests and for layers whose boot value is daily. Ask the user. Leave empty when they need none
+                                      # The name daily means "run against the real environment". It does not mean the environment is named daily. Do not default to -Denv=daily
 
 boot:
   # How mock tests start Spring: offline (with offlineArgs) | daily (with dailyArgs and dailyRun.extraArgs) | unknown (api-test-run probes on the first run)
@@ -61,8 +60,8 @@ boundaries:
   time: []                            # methods that read the current time, for example "ApiKeyRateLimiter#currentWindow"
 
 dailyRun:
-  extraArgs: []                       # extra args for a daily start (real tests and mock layers that boot on daily): disable job executors, MQ consumers, and similar
-                                      # example: "-Dxxl.job.executor.appname=false". Without it the process registers with the daily scheduler or fights a local service for a port
+  extraArgs: []                       # more -D args the user wants on that same run. Leave empty when they need none. Do not copy the example in unless they confirm it
+                                      # example only: "-Dxxl.job.executor.appname=false"
   forbiddenCalls: []                  # writes or billed calls a real test must not trigger, for example "ShanshanClueProxy#createClue"
 
 sampling:

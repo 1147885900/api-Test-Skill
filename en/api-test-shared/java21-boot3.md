@@ -120,7 +120,7 @@ package {{basePackage}}.apitest;
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@EnabledIfSystemProperty(named = "env", matches = "daily", disabledReason = "context needs daily args; skipped by the default mvn test")
+@EnabledIfSystemProperty(named = "{{property}}", matches = "{{value}}", disabledReason = "needs the local startup args from the profile; skipped by the default mvn test")
 public class BoundarySpring {
 
     @Autowired
@@ -193,7 +193,7 @@ When several cases replace the same static class, call `mockStatic` in `@BeforeE
 
 A layer whose `boot` value is `daily` is skipped as a whole class when the default `mvn test` has no daily args, and it runs when those args are present.
 
-`@EnabledIfSystemProperty` is not `@Inherited`. Put it on `BoundarySpring` and on each `FlowTest` subclass. Take the property name and value from the env marker in `commands.dailyArgs`. For example `-Denv=daily` becomes `named = "env", matches = "daily"`.
+`@EnabledIfSystemProperty` is not `@Inherited`. Put it on `BoundarySpring` and on each `FlowTest` subclass only when `commands.dailyArgs` actually contains an argument that marks the environment. Take the property name and value from that argument. A user entry `-Denv=test` becomes `named = "env", matches = "test"`. When `dailyArgs` is empty, do not add the annotation, and do not write `env=daily`.
 
 - Import: `org.junit.jupiter.api.condition.EnabledIfSystemProperty`.
 - Real tests (`*IT`) are already outside the default `mvn test`. They do not need this annotation.

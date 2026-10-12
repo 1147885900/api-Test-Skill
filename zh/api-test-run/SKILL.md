@@ -1,6 +1,6 @@
 ---
 name: api-test-run
-description: 执行 Java/Spring Boot（Maven）项目的接口测试并分类失败原因。支持替身模式和 daily 模式（带 -Denv=daily 等参数运行 IT 真实用例并收集录制样本），按模块自动切换 JDK、探测 Spring 启动方式、重跑识别不稳定用例；只报告，不修改代码。在用户要求运行测试、跑接口测试、跑 IT、验证改动、跑 daily 用例时使用。
+description: 执行 Java/Spring Boot（Maven）项目的接口测试并分类失败原因。支持替身模式和真实模式。真实模式按画像里的本地参数运行 IT 并收集录制样本，参数由用户配置，可以一个都不加。按模块自动切换 JDK、探测 Spring 启动方式、重跑识别不稳定用例；只报告，不修改代码。在用户要求运行测试、跑接口测试、跑 IT、验证改动时使用。
 disable-model-invocation: true
 ---
 
@@ -11,9 +11,9 @@ disable-model-invocation: true
 ## 硬性规则
 
 1. 只报告，不修改测试代码、业务代码和 `pom.xml`。画像的修改建议经用户确认后才写入。
-2. Windows PowerShell 下所有 `-D` 参数必须整体加双引号，如 `"-Dspring.profiles.active=local"`；不加引号时 PowerShell 会在 `.` 处拆开参数，Maven 报 `Unknown lifecycle phase`。`-Dtest=A,B` 中的逗号同样需要引号保护。
-3. 替身模式不带 daily 参数，除非画像 `boot` 中该层为 `daily`。真实用例（`*IT`）只在 daily 模式下运行。
-4. 只连 daily 或测试环境。启动参数中出现 `-Denv=prod`、`-Denv=pro` 或其他生产环境标识时，停止并告知用户。
+2. Windows PowerShell 下所有 `-D` 参数必须整体加双引号，如 `"-Dsome.flag=value"`；不加引号时 PowerShell 会在 `.` 处拆开参数，Maven 报 `Unknown lifecycle phase`。`-Dtest=A,B` 中的逗号同样需要引号保护。
+3. 替身模式不带真实环境参数，除非画像 `boot` 中该层为 `daily`。真实用例（`*IT`）只使用画像 `commands.dailyArgs` 和 `dailyRun.extraArgs`。两项都为空时不追加任何 `-D`。不要自行补上 `-Denv=daily` 或画像里没有的参数。画像字段名里的 daily 只表示连真实环境，不是要求环境名叫 daily。
+4. 只连用户指定的测试环境，不连生产。启动参数中出现 `-Denv=prod`、`-Denv=pro` 或其他生产环境标识时，停止并告知用户。
 5. 录制样本未脱敏：不把内容贴进对话，不复制到其他位置。
 
 ## 模式与范围
@@ -48,7 +48,9 @@ disable-model-invocation: true
 
 读取 `<项目根>/.api-test/profile.yaml`。不存在时告诉用户先运行 `/api-test-gen` 生成画像；用户只想跑现有测试时，按模块默认命令 `mvn -pl <模块> test` 运行，跳过第 3 步。
 
-daily 模式运行前，列出将运行的真实用例；`.api-test/behaviors/` 中标为写操作或计费的用例，提醒用户并确认后再运行。
+真实模式运行前，列出将运行的真实用例；`.api-test/behaviors/` 中标为写操作或计费的用例，提醒用户并确认后再运行。
+
+`commands.dailyArgs` 和 `dailyRun.extraArgs` 都还是空的、且用户没有说过「不加参数」时，先问本地跑真实用例要追加哪些 `-D`。用户说不需要，就把两项保持为空并记下来，之后不再追问，也不要填示例参数。
 
 ### 2. 选择 JDK
 
@@ -102,11 +104,13 @@ bash 下写作 `JAVA_HOME='{{JDK 目录}}' PATH="$JAVA_HOME/bin:$PATH" {{mvn 命
 mvn -pl {{模块}} "-Dtest={{类1}},{{类2}}" "-Dsurefire.failIfNoSpecifiedTests=false" {{启动参数}} test
 ```
 
-示例（daily 模式运行一个真实用例，最后一个参数来自 `dailyRun.extraArgs`）：
+示例（真实模式，画像里没有额外参数）：
 
 ```powershell
-mvn -pl platform-ai-service -am "-Dtest=AddressControllerIT" "-Dsurefire.failIfNoSpecifiedTests=false" "-Denv=daily" "-Dspring.profiles.active=local" "-Dxxl.job.executor.appname=false" test
+mvn -pl <模块> -am "-Dtest=<Controller>IT" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
+
+画像 `commands.dailyArgs` 或 `dailyRun.extraArgs` 里有内容时，把其中每一项作为单独的引号参数插在 `test` 之前。两项都空时，命令到 `test` 为止。
 
 - 契约层和边界层启动方式不同时，按启动方式分组，分别运行。同一组里的 `FlowTest` 放在同一次 `mvn` 中，让 Spring 上下文在这个进程里复用。每个类单独起一次 `mvn` 都是新进程，启动成本会重复付。
 - `-Dtest` 会覆盖 Surefire 默认的包含规则，写进去的 `*IT` 也会运行，因此替身模式的 `-Dtest` 中不得出现 `*IT`。

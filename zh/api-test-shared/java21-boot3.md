@@ -120,7 +120,7 @@ package {{basePackage}}.apitest;
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@EnabledIfSystemProperty(named = "env", matches = "daily", disabledReason = "上下文需带 daily 参数启动，默认 mvn test 跳过")
+@EnabledIfSystemProperty(named = "{{参数名}}", matches = "{{参数值}}", disabledReason = "需要画像里的本地启动参数，默认 mvn test 跳过")
 public class BoundarySpring {
 
     @Autowired
@@ -193,7 +193,7 @@ try (MockedStatic<{{StaticUtil}}> mocked = mockStatic({{StaticUtil}}.class)) {
 
 画像 `boot` 中为 `daily` 的层，默认 `mvn test` 不带 daily 参数时整个类显示为跳过，带参数时正常运行。
 
-这个注解放在 `BoundarySpring` 上，不放在每个 `FlowTest` 子类上。参数名和值取画像 `commands.dailyArgs` 中标识环境的那一项，如 `-Denv=daily` → `named = "env", matches = "daily"`。
+这个注解放在 `BoundarySpring` 上，不放在每个 `FlowTest` 子类上。只有 `commands.dailyArgs` 里确有一项用来区分环境时才加。参数名和值取用户配置的那一项，例如用户写了 `-Denv=test`，才是 `named = "env", matches = "test"`。`dailyArgs` 为空时不要加这个注解，也不要写成 `env=daily`。
 
 - import：`org.junit.jupiter.api.condition.EnabledIfSystemProperty`。
 - 真实用例（`*IT`）不进入默认 `mvn test`，不需要加。

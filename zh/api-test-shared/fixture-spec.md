@@ -26,7 +26,7 @@
   source: recorded                 # existing | recorded | cls | table | doc | user | synthetic
   type: com.shebao.ai.dto.response.RelayAiChatCompletionResponse
   from: "AddressControllerIT#recognize_realAddress_returnsProvinceCityDistrict" 
-  env: daily                       # synthetic 填 none
+  env: local                       # 用户配置的环境名；没有额外参数时填 local。synthetic 填 none
   capturedAt: 2026-10-08
   redacted: []                     # 已替换的字段路径
   notes: ""                        # synthetic 必须写明编造依据

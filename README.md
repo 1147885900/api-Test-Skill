@@ -156,7 +156,7 @@ A project-level install (`.cursor/skills/`, `.claude/skills/`, or `.agents/skill
 
 `.api-test/` is independent of any `AGENTS.md`, `harness/`, or rules directory the service already has. The skills read those files as reference and do not write into them. Whether `.api-test/` itself is committed is your decision. `target/` is already ignored by a normal Java `.gitignore`. If it is not, the generate command asks before editing `.gitignore`.
 
-The first run also learns how the contract slice has to start. Some services cannot boot a `@WebMvcTest` while Apollo and the registry are enabled, because the application class scans every Feign client. The profile then records offline flags for the contract layer (`apollo.bootstrap.enabled=false`, eager load off, Eureka and discovery off) and daily flags for the boundary layer. Those flags are passed on the Maven command line. They are not hardcoded into the test class.
+The first run also learns how the contract slice has to start. Some services cannot boot a `@WebMvcTest` while the config center and the registry are enabled. The profile can record the offline flags that slice needs. Extra `-D` arguments for a real run are yours to set in the profile, and the list can be empty. Those arguments go on the Maven command line. They are not hardcoded into the test class. The skill does not default to `-Denv=daily`.
 
 On Windows PowerShell the run command quotes every `-D` argument. Without the quotes, PowerShell splits on `.` and Maven reports an unknown lifecycle phase.
 

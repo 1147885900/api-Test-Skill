@@ -93,7 +93,7 @@ If it does not exist, scan the project using [profile-template.yaml](../api-test
 | `sliceConfig` | `explicit` when the `@SpringBootApplication` class also has `@ComponentScan`, `@MapperScan`, or `@EnableFeignClients` with `basePackages`. Otherwise `auto` |
 | `boundaries` | Actual class names of Feign wrappers (`*Proxy`), `@FeignClient` interfaces injected by business code (including jars, such as `DictClient`), `*Mapper`, Redis helpers, HTTP clients, MQ templates |
 | `sampling`, `dailyRun` | Ask the user: whether to sample logs, which log plugin to use (default Tencent Cloud CLS, replaceable), the test-environment topic or query, request-record tables, and which methods real tests must not call. When the plugin is not CLS, write the usage into `sampling.cls.notes` and set `provider` to the plugin name |
-| `dailyRun.extraArgs` | When the dependencies include a job executor such as xxl-job, or an MQ consumer, find the setting that disables it and write a `-D` arg. A trial run counts as success when the executor no longer starts in the log |
+| `commands.dailyArgs`, `dailyRun.extraArgs` | Ask which `-D` arguments a local real run needs. Leave both lists empty when the user needs none. Do not write `-Denv=daily`, and do not copy example arguments from the template. Write a flag only after the user confirms it |
 
 Write `unknown` when there is no evidence. Do not guess. A project testing doc may be read, but version fields follow dependencies and existing tests. Show the whole profile to the user, then write `.api-test/profile.yaml` after they confirm.
 

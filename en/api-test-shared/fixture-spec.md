@@ -26,7 +26,7 @@ Path: `fixtures/<endpoint>.sources.yaml`. Register saved samples only. Do not re
   source: recorded                 # existing | recorded | cls | table | doc | user | synthetic
   type: com.shebao.ai.dto.response.RelayAiChatCompletionResponse
   from: "AddressControllerIT#recognize_realAddress_returnsProvinceCityDistrict"
-  env: daily                       # synthetic uses none
+  env: local                       # the environment name the user configured; local when they added no extra args. synthetic uses none
   capturedAt: 2026-10-08
   redacted: []                     # field paths that were replaced
   notes: ""                        # synthetic must say why the value was invented
