@@ -1,0 +1,86 @@
+# 接口测试画像
+# 位置：<项目根>/.api-test/profile.yaml（与 harness 等项目规范目录无关，项目没有规范目录也照常使用）
+# api-test-gen / api-test-audit / api-test-run 每次运行先读本文件。
+# 首次由 api-test-gen 扫描生成，经用户确认后写入；之后的修改同样要经用户确认。是否提交由项目决定。
+# 占位符写法 {{说明}}；取不到证据的值写 unknown，不要猜。
+
+version: 1
+
+project:
+  name: "{{项目名，取根 pom 的 artifactId}}"
+  baseBranch: master                  # 计算增量改动的基线分支
+  basePackage: "{{Java 基础包，如 com.shebao.ai}}"
+
+modules:
+  - name: "{{模块名，如 platform-ai-service}}"
+    path: "{{相对项目根的路径}}"
+    java: 21                          # 编译目标：8 | 11 | 17 | 21
+    springBoot: "3.5"                 # 无 Spring Boot 时写 none
+    servlet: jakarta                  # jakarta | javax
+    junit: 5                          # 以依赖和现有测试为准，不以规范文档为准：4 | 5
+    mockito: 5
+    assertj: true
+    json: fastjson2                   # 样本读写用的 JSON 库：fastjson2 | fastjson | jackson
+    styleGuide: java21-boot3          # java21-boot3 | java8-boot2
+    hasControllers: true
+    exceptionHandler: unknown         # 全局异常处理类全名；在框架 jar 里也要填
+    rejectResponse: unknown           # 参数校验失败时的返回断言，首次生成拒绝用例时实测后填写，例：jsonPath("$.code").value(400)
+    sliceConfig: auto                 # auto：@WebMvcTest 按默认规则加载；explicit：启动类另有 @ComponentScan / @MapperScan /
+                                      # 带 basePackages 的 @EnableFeignClients，契约层需用 @ContextConfiguration 显式指定加载的类
+
+commands:
+  # 所有 -D 参数在 Windows PowerShell 下必须加引号，api-test-run 负责拼接
+  testClasses: 'mvn -pl {{module}} "-Dtest={{tests}}" "-Dsurefire.failIfNoSpecifiedTests=false" test'
+  testModule: "mvn -pl {{module}} test"
+  testCompile: "mvn -pl {{module}} test-compile"
+  dailyArgs:
+    - "-Denv=daily"
+    - "-Dspring.profiles.active=local"
+
+boot:
+  # 替身用例启动 Spring 的方式：offline（带 offlineArgs）| daily（带 dailyArgs 和 dailyRun.extraArgs）| unknown（由 api-test-run 首次运行时探测）
+  # 为 daily 的层，测试类必须带 daily 启动条件，默认 mvn test 时跳过
+  contract: unknown                   # 契约层：*ApiTest（@WebMvcTest）
+  boundary: unknown                   # 边界层：*FlowTest（@SpringBootTest + MockMvc）
+  offlineArgs:
+    - "-Dapollo.bootstrap.enabled=false"
+    - "-Dapollo.bootstrap.eagerLoad.enabled=false"
+    - "-Deureka.client.enabled=false"
+    - "-Dspring.cloud.discovery.enabled=false"
+
+boundaries:
+  # 替身用例中这些类型一律替换；真实用例中不替换，只对需要录制的依赖套 spy
+  feign: ["*Proxy"]                   # 公司内部服务调用的封装类，以及业务代码直接注入的 @FeignClient 接口（含依赖 jar 中的，如 DictClient）
+  dataAccess: ["*Mapper"]
+  cache: ["RedisUtil", "RedisTemplate", "StringRedisTemplate"]
+  http: ["OkHttpClient", "RestTemplate"]
+  mq: ["RabbitTemplate"]
+  time: []                            # 读取当前时间的方法，例："ApiKeyRateLimiter#currentWindow"
+
+dailyRun:
+  extraArgs: []                       # daily 启动时的额外参数（真实用例和 daily 启动的替身用例都带）：关闭定时任务执行器、MQ 消费等
+                                      # 例："-Dxxl.job.executor.appname=false"；不关闭时会注册到 daily 调度中心，或与本机已运行的服务抢端口
+  forbiddenCalls: []                  # 真实用例禁止触发的写操作 / 计费调用，例："ShanshanClueProxy#createClue"
+
+sampling:
+  # 日志采样。字段名保持 cls，只是来源编号，不表示只能用腾讯云 CLS。
+  # provider 为 cls：用 region、topicId、app 调用腾讯云 CLS。
+  # provider 改成其他插件名：不要调用 CLS。把插件名、查询工具、项目名字段、如何只查测试环境写进 notes。
+  cls:
+    enabled: false
+    provider: cls                   # cls | 其他日志插件名
+    region: "{{provider 为 cls 时的地域，如 ap-guangzhou；否则填 unused}}"
+    topicId: "{{provider 为 cls 时的 daily 主题 id，禁止填 prod；否则填 unused}}"
+    app: "{{项目名，用来区分日志所属服务，如 platform-ai-service。不是业务 appId}}"
+    notes: ""                       # provider 不是 cls 时必填
+  recordTables: []                    # 例：{ table: gpt_request_record, env: daily, fields: [request, response] }
+
+redact:
+  # 字段名比较时忽略大小写
+  exactFieldNames: [name, realName, userName, nickName, address, tel, wechat, qq]      # 完全相同才命中，避免误伤 cityName、ipAddress
+  suffixFieldNames: [phone, mobile, idCard, idNo, certNo, email, bankCard,
+                     token, password, secret, apiKey, authorization]                    # 以此结尾即命中，如 userPhone、accessToken
+  keepFieldNames: []                  # 命中但无需脱敏的字段，例：maxToken
+
+exclude:
+  - "**/generated/**"

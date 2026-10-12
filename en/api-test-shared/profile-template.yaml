@@ -1,0 +1,89 @@
+# API test profile
+# Location: <project root>/.api-test/profile.yaml
+# Independent of harness and other project-doc folders. Used even when those folders do not exist.
+# api-test-gen / api-test-audit / api-test-run read this file first.
+# api-test-gen scans and drafts it the first time. Write it after the user confirms. Later edits need confirmation too.
+# Whether to commit it is the project's choice.
+# Placeholders look like {{note}}. When there is no evidence, write unknown. Do not guess.
+
+version: 1
+
+project:
+  name: "{{project name, artifactId of the root pom}}"
+  baseBranch: master                  # baseline branch for incremental diffs
+  basePackage: "{{Java base package, for example com.example.app}}"
+
+modules:
+  - name: "{{module name}}"
+    path: "{{path relative to the project root}}"
+    java: 21                          # compile target: 8 | 11 | 17 | 21
+    springBoot: "3.5"                 # none when the module is not Spring Boot
+    servlet: jakarta                  # jakarta | javax
+    junit: 5                          # follow dependencies and existing tests, not a style doc: 4 | 5
+    mockito: 5
+    assertj: true
+    json: fastjson2                   # JSON library for samples: fastjson2 | fastjson | jackson
+    styleGuide: java21-boot3          # java21-boot3 | java8-boot2
+    hasControllers: true
+    exceptionHandler: unknown         # fully qualified global exception handler; fill it even when it lives in a framework jar
+    rejectResponse: unknown           # assertion for a validation failure. Fill after the first rejection case is observed, for example jsonPath("$.code").value(400)
+    sliceConfig: auto                 # auto: @WebMvcTest loads by its default rules
+                                      # explicit: the application class also has @ComponentScan / @MapperScan /
+                                      # @EnableFeignClients with basePackages, so the contract layer must list classes with @ContextConfiguration
+
+commands:
+  # On Windows PowerShell every -D argument must be quoted. api-test-run builds the command.
+  testClasses: 'mvn -pl {{module}} "-Dtest={{tests}}" "-Dsurefire.failIfNoSpecifiedTests=false" test'
+  testModule: "mvn -pl {{module}} test"
+  testCompile: "mvn -pl {{module}} test-compile"
+  dailyArgs:
+    - "-Denv=daily"
+    - "-Dspring.profiles.active=local"
+
+boot:
+  # How mock tests start Spring: offline (with offlineArgs) | daily (with dailyArgs and dailyRun.extraArgs) | unknown (api-test-run probes on the first run)
+  # A layer set to daily must carry the daily startup condition so the default mvn test skips it
+  contract: unknown                   # contract layer: *ApiTest (@WebMvcTest)
+  boundary: unknown                   # boundary layer: *FlowTest (@SpringBootTest + MockMvc)
+  offlineArgs:
+    - "-Dapollo.bootstrap.enabled=false"
+    - "-Dapollo.bootstrap.eagerLoad.enabled=false"
+    - "-Deureka.client.enabled=false"
+    - "-Dspring.cloud.discovery.enabled=false"
+
+boundaries:
+  # Mock tests replace these types. Real tests do not replace them; spy only the dependencies that must be recorded
+  feign: ["*Proxy"]                   # wrappers for internal services, and @FeignClient interfaces injected by business code (including jars)
+  dataAccess: ["*Mapper"]
+  cache: ["RedisUtil", "RedisTemplate", "StringRedisTemplate"]
+  http: ["OkHttpClient", "RestTemplate"]
+  mq: ["RabbitTemplate"]
+  time: []                            # methods that read the current time, for example "ApiKeyRateLimiter#currentWindow"
+
+dailyRun:
+  extraArgs: []                       # extra args for a daily start (real tests and mock layers that boot on daily): disable job executors, MQ consumers, and similar
+                                      # example: "-Dxxl.job.executor.appname=false". Without it the process registers with the daily scheduler or fights a local service for a port
+  forbiddenCalls: []                  # writes or billed calls a real test must not trigger, for example "ShanshanClueProxy#createClue"
+
+sampling:
+  # Log sampling. The field name stays cls. It is the source id, not a requirement to use Tencent Cloud CLS.
+  # provider cls: call Tencent CLS with region, topicId, and app.
+  # Any other provider: do not call CLS. Put the plugin name, query tool, project-name field, and how to query test logs only into notes.
+  cls:
+    enabled: false
+    provider: cls                   # cls | another log plugin name
+    region: "{{region when provider is cls, for example ap-guangzhou; otherwise unused}}"
+    topicId: "{{daily topic id when provider is cls; never a prod topic; otherwise unused}}"
+    app: "{{service name used to tell projects apart, for example platform-ai-service. Not a business appId}}"
+    notes: ""                       # required when provider is not cls
+  recordTables: []                    # example: { table: gpt_request_record, env: daily, fields: [request, response] }
+
+redact:
+  # Field-name comparison ignores case
+  exactFieldNames: [name, realName, userName, nickName, address, tel, wechat, qq]      # exact match only, so cityName and ipAddress are not hit
+  suffixFieldNames: [phone, mobile, idCard, idNo, certNo, email, bankCard,
+                     token, password, secret, apiKey, authorization]                    # a name ending with one of these is a hit, such as userPhone or accessToken
+  keepFieldNames: []                  # a hit that should not be redacted, for example maxToken
+
+exclude:
+  - "**/generated/**"
